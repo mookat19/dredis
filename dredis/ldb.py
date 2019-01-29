@@ -1,3 +1,4 @@
+import datetime
 import struct
 
 import plyvel
@@ -19,6 +20,9 @@ LDB_KEY_TYPES = [LDB_STRING_TYPE, LDB_SET_TYPE, LDB_HASH_TYPE, LDB_ZSET_TYPE]
 LDB_KEY_PREFIX_FORMAT = '>BI'
 LDB_KEY_PREFIX_LENGTH = struct.calcsize(LDB_KEY_PREFIX_FORMAT)
 LDB_ZSET_SCORE_FORMAT = '>d'
+
+SNAPSHOT_TIME_FORMAT = '%Y-%m-%dT%H-%M-%S'
+SNAPSHOTS_DIRNAME = 'snapshots'
 
 
 class LDBKeyCodec(object):
@@ -85,10 +89,14 @@ class LDBKeyCodec(object):
 
 class LevelDB(object):
 
+    def __init__(self):
+        self._root_dir = None
+
     def setup_dbs(self, root_dir):
+        self._root_dir = Path(root_dir)
         for db_id_ in range(16):
             db_id = str(db_id_)
-            directory = Path(root_dir).join(db_id)
+            directory = self._root_dir.join(db_id)
             self._assign_db(db_id, directory)
 
     def open_db(self, path):
@@ -107,11 +115,33 @@ class LevelDB(object):
         LDB_DBS[db_id]['directory'].reset()
         self._assign_db(db_id, LDB_DBS[db_id]['directory'])
 
+    def backup(self):
+        start_time = datetime.datetime.utcnow().strftime(SNAPSHOT_TIME_FORMAT)
+        snapshots_dir = self._root_dir.join(SNAPSHOTS_DIRNAME).join(start_time)
+        snapshots_dir.makedirs(ignore_if_exists=True)
+
+        for db_id in LDB_DBS:
+            self._backup(db_id, snapshots_dir)
+
+        return str(snapshots_dir)
+
     def _assign_db(self, db_id, directory):
         LDB_DBS[db_id] = {
             'db': self.open_db(directory),
             'directory': directory,
         }
+
+    def _backup(self, db_id, snapshots_dir):
+        db = LDB_DBS[db_id]['db']
+        directory = LDB_DBS[db_id]['directory']
+        snapshot_dir = snapshots_dir.join(directory.basename())
+        with db.snapshot() as snapshot_db:
+            backup_db = self.open_db(snapshot_dir)
+            try:
+                for db_key, db_value in snapshot_db:
+                    backup_db.put(db_key, db_value)
+            finally:
+                backup_db.close()
 
 
 KEY_CODEC = LDBKeyCodec()

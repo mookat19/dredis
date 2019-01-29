@@ -1,3 +1,8 @@
+import datetime
+import os
+import plyvel
+
+from dredis.ldb import KEY_CODEC
 from tests.helpers import fresh_redis
 
 
@@ -44,3 +49,18 @@ def test_dbsize():
     r0.set('test', 'value')
     assert r0.dbsize() == 1
     assert r1.dbsize() == 0
+
+
+def test_save():
+    r = fresh_redis(db=5)
+    # dredis SAVE returns the snapshot directory but
+    # redis-py expects it to return 'OK'. thus the overwrite to not change the response
+    r.set_response_callback('SAVE', lambda response: response)
+
+    r.set('test', 'value')
+
+    snapshot_dir = r.save()
+    assert snapshot_dir
+    assert sorted(os.listdir(snapshot_dir)) == sorted(map(str, range(16)))
+    db = plyvel.DB(os.path.join(snapshot_dir, '5'))
+    assert list(db) == [(KEY_CODEC.encode_string('test'), 'value')]

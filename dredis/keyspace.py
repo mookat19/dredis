@@ -332,6 +332,9 @@ class Keyspace(object):
     def dbsize(self):
         return len(self.keys(pattern=None))
 
+    def save(self):
+        return LEVELDB.backup()
+
     def exists(self, *keys):
         result = 0
         for key in keys:

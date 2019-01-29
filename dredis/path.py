@@ -23,3 +23,9 @@ class Path(str):
                 pass
             else:
                 six.reraise(*sys.exc_info())
+
+    def parent(self):
+        return Path(os.path.dirname(self))
+
+    def basename(self):
+        return Path(os.path.basename(self))

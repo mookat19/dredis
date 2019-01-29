@@ -56,6 +56,7 @@ COMMAND\*                                    | Server
 FLUSHALL                                     | Server
 FLUSHDB                                      | Server
 DBSIZE                                       | Server
+SAVE\**                                      | Server
 DEL key [key ...]                            | Keys
 TYPE key                                     | Keys
 KEYS pattern                                 | Keys
@@ -91,7 +92,8 @@ HLEN key                                     | Hashes
 HINCRBY key field increment                  | Hashes
 HGETALL key                                  | Hashes
 
-\* `COMMAND`'s reply is incompatible at the moment, it returns a flat array with command names (their arity, flags, positions, or step count are not returned). 
+\* `COMMAND`'s reply is incompatible at the moment, it returns a flat array with command names (their arity, flags, positions, or step count are not returned).
+\** `SAVE`'s reply is the LevelDB snapshot location, differently than Redis's `"OK"` reply
 
 
 ## How is DRedis implemented
@@ -127,13 +129,13 @@ Use DNS routing or a network load balancer to route requests properly.
 
 ### Backups
 
-There are many solutions to back up files. DRedis will have no impact when backups are performed because it's done from the outside (different from Redis, which uses `fork()` to snapshot the data).
-A straightforward approach is to have period backups to an object storage such as Amazon S3.
+This project includes a snapshot utility (`dredis-snapshot`) to make it easier to back up data locally or to AWS S3:
 
-The commands SAVE or BGSAVE will be supported in the future to guarantee consistency when generating backups.
+```shell
+dredis-snapshot -x 127.0.0.1 6377 s3://my-dredis-snapshots/
+```
 
-This project includes a snapshot utility (`dredis-snapshot`) to make it easier to back up data locally or to AWS S3.
-Be aware that there may be consistency issues during the snapshot (`dredis` won't pause during the temporary copy of the data directory).
+The command `BGSAVE` may be implemented in the future.
 
 
 ## Why Python
