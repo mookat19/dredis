@@ -93,6 +93,7 @@ HINCRBY key field increment                  | Hashes
 HGETALL key                                  | Hashes
 
 \* `COMMAND`'s reply is incompatible at the moment, it returns a flat array with command names (their arity, flags, positions, or step count are not returned).
+
 \** `SAVE`'s reply is the LevelDB snapshot location, differently than Redis's `"OK"` reply
 
 
@@ -134,6 +135,10 @@ This project includes a snapshot utility (`dredis-snapshot`) to make it easier t
 ```shell
 dredis-snapshot -x 127.0.0.1 6377 s3://my-dredis-snapshots/
 ```
+
+`dredis-snapshot` depends on `redis-cli`, make sure you have it installed (`apt-get install redis-tools` or `brew install redis`).
+
+---
 
 The command `BGSAVE` may be implemented in the future.
 
