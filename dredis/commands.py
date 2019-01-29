@@ -1,7 +1,12 @@
 import logging
 from functools import wraps
 
+from dredis import __version__
+from dredis import state
+from dredis.ldb import NUMBER_OF_REDIS_DATABASES
 from dredis.utils import to_float
+
+DEFAULT_INFO_SECTION = 'default'
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +80,54 @@ def cmd_flushdb(keyspace, *args):
 @command('DBSIZE', arity=1)
 def cmd_dbsize(keyspace):
     return keyspace.dbsize()
+
+
+@command('INFO', arity=-1)
+def cmd_info(keyspace, section=DEFAULT_INFO_SECTION):
+    """
+    When no parameter is provided, the default option is assumed.
+    https://redis.io/commands/info
+    """
+
+    # local import to avoid circular import
+    from dredis.keyspace import Keyspace
+    info = []
+    section = section.lower()
+
+    if section == DEFAULT_INFO_SECTION or section == 'server':
+        server_info = '\r\n'.join([
+            '# Server',
+            'dredis_version:{}'.format(__version__),
+        ])
+        info.append(server_info)
+
+    if section == DEFAULT_INFO_SECTION or section == 'clients':
+        connected_clients = len(state.KEYSPACES)
+        clients_info = '\r\n'.join([
+            '# Clients',
+            'connected_clients:{connected_clients}'.format(connected_clients=connected_clients),
+        ])
+        info.append(clients_info)
+
+    if section == DEFAULT_INFO_SECTION or section == 'keyspace':
+        tmp_keyspace = Keyspace()
+        db_info = []
+        for db_id in range(NUMBER_OF_REDIS_DATABASES):
+            tmp_keyspace.select(str(db_id))
+            key_count = tmp_keyspace.dbsize()
+            if not key_count:
+                continue
+            # no `expire`/`ttl` support yet
+            expires = avg_ttl = 0
+            db_info.append('db{db_id}:keys={key_count},expires={expires},avg_ttl={avg_ttl}'.format(
+                db_id=db_id, key_count=key_count, expires=expires, avg_ttl=avg_ttl))
+        keyspace_info = '\r\n'.join([
+            '# Keyspace',
+        ] + db_info)
+        info.append(keyspace_info)
+
+    result = '\r\n\r\n'.join(info)
+    return result
 
 
 """

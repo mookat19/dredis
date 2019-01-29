@@ -6,7 +6,6 @@ from dredis.lua import LuaRunner
 from dredis.utils import to_float
 
 DEFAULT_REDIS_DB = '0'
-NUMBER_OF_REDIS_DATABASES = 16
 
 
 def to_float_string(f):

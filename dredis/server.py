@@ -10,6 +10,7 @@ import traceback
 import sys
 
 from dredis import __version__
+from dredis import state
 from dredis.commands import run_command, SimpleString, CommandNotFound
 from dredis.keyspace import Keyspace
 from dredis.ldb import LEVELDB
@@ -19,7 +20,6 @@ from dredis.path import Path
 
 logger = logging.getLogger('dredis')
 
-KEYSPACES = {}
 ROOT_DIR = None  # defined by `main()`
 
 
@@ -88,14 +88,14 @@ class CommandHandler(asyncore.dispatcher):
     def handle_close(self):
         logger.debug("closing {}".format(self.addr))
         self.close()
-        if self.addr in KEYSPACES:
-            del KEYSPACES[self.addr]
+        if self.addr in state.KEYSPACES:
+            del state.KEYSPACES[self.addr]
 
     @property
     def keyspace(self):
-        if self.addr not in KEYSPACES:
-            KEYSPACES[self.addr] = Keyspace()
-        return KEYSPACES[self.addr]
+        if self.addr not in state.KEYSPACES:
+            state.KEYSPACES[self.addr] = Keyspace()
+        return state.KEYSPACES[self.addr]
 
 
 class RedisServer(asyncore.dispatcher):

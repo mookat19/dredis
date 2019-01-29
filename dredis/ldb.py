@@ -20,6 +20,8 @@ LDB_KEY_PREFIX_FORMAT = '>BI'
 LDB_KEY_PREFIX_LENGTH = struct.calcsize(LDB_KEY_PREFIX_FORMAT)
 LDB_ZSET_SCORE_FORMAT = '>d'
 
+NUMBER_OF_REDIS_DATABASES = 16
+
 
 class LDBKeyCodec(object):
 
@@ -86,7 +88,7 @@ class LDBKeyCodec(object):
 class LevelDB(object):
 
     def setup_dbs(self, root_dir):
-        for db_id_ in range(16):
+        for db_id_ in range(NUMBER_OF_REDIS_DATABASES):
             db_id = str(db_id_)
             directory = Path(root_dir).join(db_id)
             self._assign_db(db_id, directory)
