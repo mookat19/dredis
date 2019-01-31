@@ -136,12 +136,9 @@ class LevelDB(object):
         directory = LDB_DBS[db_id]['directory']
         snapshot_dir = snapshots_dir.join(directory.basename())
         with db.snapshot() as snapshot_db:
-            backup_db = self.open_db(snapshot_dir)
-            try:
+            with self.open_db(snapshot_dir).write_batch() as backup_batch:
                 for db_key, db_value in snapshot_db:
-                    backup_db.put(db_key, db_value)
-            finally:
-                backup_db.close()
+                    backup_batch.put(db_key, db_value)
 
 
 KEY_CODEC = LDBKeyCodec()
